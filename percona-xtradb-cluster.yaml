@@ -1,0 +1,51 @@
+apiVersion: pxc.percona.com/v1
+kind: PerconaXtraDBCluster
+metadata:
+  name: mysql-cluster
+  namespace: default
+spec:
+  crVersion: 1.13.0
+  secretsName: my-cluster-secrets
+  allowUnsafeConfigurations: true
+
+  pxc:
+    size: 3
+    image: percona/percona-xtradb-cluster:8.0.36-28.1
+    resources:
+      requests:
+        memory: 512Mi
+        cpu: 250m
+    affinity:
+      antiAffinityTopologyKey: "kubernetes.io/hostname"
+    volumeSpec:
+      persistentVolumeClaim:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 10Gi
+        storageClassName: local-storage
+    configuration: |
+      [mysqld]
+      pxc_strict_mode=PERMISSIVE
+      max_connections=1000
+      log_bin_trust_function_creators=1
+
+  proxysql:
+    enabled: true
+    size: 2
+    image: percona/proxysql2:2.6.2
+    resources:
+      requests:
+        memory: 128Mi
+        cpu: 100m
+    affinity:
+      antiAffinityTopologyKey: "kubernetes.io/hostname"
+    volumeSpec:
+      emptyDir: {}
+
+  haproxy:
+    enabled: false
+
+  logcollector:
+    enabled: false

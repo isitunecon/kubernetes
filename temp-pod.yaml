@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: temp-sql
+spec:
+  restartPolicy: Never
+  containers:
+  - name: sql
+    image: nina323/mysql
+    command: ["/bin/sh", "-c"]
+    args: ["sleep 3600"]

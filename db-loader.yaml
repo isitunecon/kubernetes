@@ -1,0 +1,40 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: db-loader
+  namespace: default
+spec:
+  backoffLimit: 3
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: loader
+        image: nina323/mysql
+        command: ["/bin/sh", "-c"]
+        args:
+          - |
+            echo "Starting DB loader..."
+            until mysqladmin ping -h "$DB_HOST" -P 3306 -u"$DB_USER" -p"$DB_PASS" --silent; do
+              echo "Waiting for DB to be ready..."
+              sleep 5
+            done
+            echo "DB reachable. Creating database if missing..."
+            mysql -h "$DB_HOST" -P 3306 -u"$DB_USER" -p"$DB_PASS" -e "CREATE DATABASE IF NOT EXISTS \`$DB_NAME\`;"
+            if [ -f /docker-entrypoint-initdb.d/init.sql ]; then
+              echo "Applying schema from init.sql ..."
+              mysql -h "$DB_HOST" -P 3306 -u"$DB_USER" -p"$DB_PASS" "$DB_NAME" < /docker-entrypoint-initdb.d/init.sql
+              echo "Schema applied successfully."
+            else
+              echo "No init.sql found at /docker-entrypoint-initdb.d/init.sql"
+            fi
+            echo "DB loader finished successfully."
+        env:
+          - name: DB_HOST
+            value: "mysql-cluster-pxc.default.svc.cluster.local"
+          - name: DB_USER
+            value: "root"
+          - name: DB_PASS
+            value: "secret"
+          - name: DB_NAME
+            value: "db2"

@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: pxc-auto-recover
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      app: pxc-auto-recover
+  template:
+    metadata:
+      labels:
+        app: pxc-auto-recover
+    spec:
+      serviceAccountName: pxc-auto-recover
+      containers:
+        - name: pxc-auto-recover
+          image: bitnami/kubectl:latest
+          command:
+            - /bin/sh
+            - -c
+            - |
+              echo "Starting PXC auto-recovery watcher..."
+              while true; do
+                for POD in $(kubectl get pods -l app.kubernetes.io/component=pxc -o jsonpath='{.items[*].metadata.name}'); do
+                  STATUS=$(kubectl get pod $POD -o jsonpath='{.status.phase}')
+                  if [ "$STATUS" = "Running" ]; then
+                    echo "Recovering $POD ..."
+                    kubectl exec -n default $POD -c pxc -- sh -c 'kill -s USR1 1' || true
+                  fi
+                done
+                sleep 60
+              done
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi

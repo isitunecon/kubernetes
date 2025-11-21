@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-cluster-proxysql
+  namespace: default
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/component: proxysql
+    app.kubernetes.io/instance: mysql-cluster
+  ports:
+    - name: mysql
+      port: 3306
+      targetPort: 3306
+    - name: admin
+      port: 6032
+      targetPort: 6032
